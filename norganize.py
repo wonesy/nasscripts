@@ -7,6 +7,9 @@ import eyed3
 import shutil
 import time
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 g_dl_dir = "/media/apricot/torrents/download/"
 #g_dl_dir = "/home/camomile/"
 
