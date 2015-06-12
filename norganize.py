@@ -6,6 +6,7 @@ import sys
 import eyed3
 import shutil
 import time
+import guessit
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -67,8 +68,7 @@ def play_that_funky_music():
     # Check if artist dir already exists
     if not os.path.isdir(g_music_dir + album_artist):
         os.mkdir(g_music_dir + album_artist, 0777)
-        log.write(now + "Making Album Path " \
-            + g_music_dir + album_artist + "\n")
+        log.write(now + "Making Artist Path " + g_music_dir + album_artist + "\n")
 
     if album_date:
         album_dir_name = "%s (%d)" % (album_name, album_date.year)
@@ -86,30 +86,70 @@ def play_that_funky_music():
 
     log.write(now + "[MUSIC] Created directory " + full_album_path + "\n")
 
-def lights_camera_action():
+def netflix_couch_potato():
+    for root, dirs, files in os.walk(os.getcwd()):
+        guess = []
+        home_found = False
+        homeless_files = []
+        dest_fullpath = ""
+
+        for fn in files:
+            fullpath = os.path.join(root, fn)
+            name, ext = os.path.splitext(fn)
+            
+            if not home_found:
+                if ext == ".nfo":
+                    continue
+                homeless_files.append(os.path.join(root, fn))
+
+            if home_found:
+                shutil.copy(os.path.join(root, fn), dest_fullpath)
+                continue
+
+            if ext in g_video_mimes:
+                home_found = True
+                guess = guessit.guess_file_info(fullpath)
+                series = guess['series']
+                season = guess['season']
+
+                if not os.path.isdir(g_tv_dir + series):
+                    log.write(now + "[TV] Created directory " + series)
+                    os.mkdir(g_tv_dir + series)
+
+                if not os.path.isdir(g_tv_dir + series + "/Season " + str(season)):
+                    log.write(now + "[TV] Created directory " + series + " " + str(season))
+                    os.mkdir(g_tv_dir + series + "/Season " + str(season))
+
+                dest_fullpath = g_tv_dir + series + "/Season " + str(season)
+
+        for hobos in homeless_files:
+            print hobos
+            print dest_fullpath
+            shutil.copy(hobos, dest_fullpath)
+
     pass
 
-def netflix_couch_potato():
+def lights_camera_action():
     pass
 
 # Move to completed target dir
 os.chdir(g_dl_dir + g_target)
 
-
 # Gather all mime types
 nummusic = 0
 numvideo = 0
 
-for fn in os.listdir('.'):
-    name, ext = os.path.splitext(fn)
+for root, dirs, files in os.walk(os.getcwd()):
+    for fn in files:
+        name, ext = os.path.splitext(fn)
 
-    if ext in g_music_mimes:
-        nummusic += 1
-    elif ext in g_video_mimes:
-        numvideo += 1
-    else:
-        # chances are it's a missing video type :(
-        numvideo +=1
+        if ext in g_music_mimes:
+            nummusic += 1
+        elif ext in g_video_mimes:
+            numvideo += 1
+        else:
+            # chances are it's a missing video type :(
+            numvideo +=1
 
 # Make an educated guess if music/movie/tv
 # Assumptions:
@@ -123,5 +163,7 @@ elif numvideo > 0 and numvideo <= 2:
 elif numvideo > 2:
     netflix_couch_potato()
 else:
-    log.write(now + "Error: Could not determine the type of torrent!\n")
+    msg = "Error: could not determine the type of torrent!\n"
+    print msg 
+    log.write(now + msg)
 
