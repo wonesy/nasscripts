@@ -8,6 +8,7 @@ import shutil
 import time
 import guessit
 
+# Something weird about encoding
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -130,40 +131,84 @@ def netflix_couch_potato():
     pass
 
 def lights_camera_action():
-    pass
+    # assumes there is at most one directory
 
-# Move to completed target dir
-os.chdir(g_dl_dir + g_target)
+    target_full_path = g_dl_dir + "/" + g_target
+    guess = []
+
+    # is a directory
+    if os.path.isdir(target_full_path):
+        for fn in os.listdir('.'):
+            name, ext = os.path.splitext(fn)
+
+            if ext in g_video_mimes:
+                guess = guessit.guess_file_info(g_dl_dir + "/" + fn)
+                break
+
+        mv_title = guess['title']
+        mv_year = guess['year']
+
+        if mv_year:
+            mv_link_name = g_movie_dir + mv_title + " (" + mv_year + ")"
+        else:
+            mv_link_name = g_movie_dir + mv_title
+
+        os.symlink(target_full_path, mv_link_name)
+
+    # was originally just a single video file
+    else:
+        guess = guessit.guess_file_info(target_full_path)
+
+        mv_title = guess['title']
+        mv_year = guess['year']
+
+        if mv_year:
+            mv_link_name = g_movie_dir + mv_title + " (" + mv_year + ")"
+        else:
+            mv_link_name = g_movie_dir + mv_title
+
+        os.mkdir(mv_link_name)
+        shutil.copy(target_full_path, mv_link_name)
 
 # Gather all mime types
-nummusic = 0
-numvideo = 0
+def get_torrent_type():
 
-for root, dirs, files in os.walk(os.getcwd()):
-    for fn in files:
-        name, ext = os.path.splitext(fn)
+    # Move to completed target dir
+    if os.path.isdir(g_dl_dir + g_target)
+        os.chdir(g_dl_dir + g_target)
+        for root, dirs, files in os.walk(os.getcwd()):
+            for fn in files:
+                name, ext = os.path.splitext(fn)
+                fullpath = os.path.join(root, fn)
 
-        if ext in g_music_mimes:
-            nummusic += 1
-        elif ext in g_video_mimes:
-            numvideo += 1
-        else:
-            # chances are it's a missing video type :(
-            numvideo +=1
+                if ext in g_video_mimes:
+                    guess = guessit.guess_file_info(fullpath)
+                    vid_type = guess['type']
+                    return vid_type
+                elif ext in g_music_mimes:
+                    return 'music'
+    else:
+        name, ext = os.path.splitext(g_target)
+        if ext in g_video_mimes:
+            guess = guessit.guess_file_info(g_dl_dir + g_target)
+            vid_type = guess['type']
+            return vid_type
+        elif ext in g_music_mimes:
+            return 'music'
 
-# Make an educated guess if music/movie/tv
-# Assumptions:
-#       - anything with mp3, flac = music
-#       - anything with <= 2 video files is (probably) a movie
-#       - all else with video > 2 is TV
-if nummusic > numvideo:
+    return 'unknown'
+
+
+
+torrent_type = get_torrent_type()
+
+if torrent_type == "music":
     play_that_funky_music()
-elif numvideo > 0 and numvideo <= 2:
-    lights_camera_action()
-elif numvideo > 2:
+elif torrent_type == "episode":
     netflix_couch_potato()
+elif torrent_type == "movie":
+    lights_camera_action()
 else:
-    msg = "Error: could not determine the type of torrent!\n"
-    print msg 
+    msg = "Unknown torrent type: " + torrent_type + " (" + g_target + ")"
+    print msg
     log.write(now + msg)
-
